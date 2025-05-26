@@ -1,0 +1,16 @@
+@import "tailwindcss";
+@import "vis-network/styles/vis-network.css";
+@import "@radix-ui/themes/styles.css";
+
+body {
+  margin: 0;
+  font-family: var(--default-font-family); /* Uses Radix Themes default font */
+  background-color: var(--color-background);
+  color: var(--color-text);
+  min-height: 100vh;
+}
+
+/* Ensure vis-network graph is visible */
+.vis-network {
+  touch-action: pan-y; /* Important for mobile touch interactions */
+}

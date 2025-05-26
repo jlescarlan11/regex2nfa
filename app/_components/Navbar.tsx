@@ -47,10 +47,9 @@ const NavBar = () => {
           <Link href="/" style={{ textDecoration: "none", color: "inherit" }}>
             <Flex gap="3" align="center">
               <Avatar
-                size="2"
-                radius="full"
                 fallback="R"
-                color="indigo" // Changed color for better visibility
+                variant="solid"
+                color="gray" // Changed color for better visibility
                 highContrast
               />
               <Flex direction="column">

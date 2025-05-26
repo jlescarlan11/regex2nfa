@@ -1,23 +1,12 @@
 // app/page.tsx
 "use client"; // This page is highly interactive
-import {
-  Flex,
-  Grid,
-  Card,
-  Text,
-  Badge,
-  Separator,
-  Box,
-} from "@radix-ui/themes";
+import ErrorAlert from "@/app/_components/ErrorAlert";
+import InputPanel from "@/app/_components/InputPanel";
+import SimulationCard from "@/app/_components/SimulationCard";
+import { Badge, Card, Container, Flex, Grid, Text } from "@radix-ui/themes";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { Options } from "vis-network/standalone"; // Edge, IdType, Node are now in types/vis.ts
 import { DataSet, Network } from "vis-network/standalone";
-import ErrorAlert from "@/app/_components/ErrorAlert";
-import GuideCard from "@/app/_components/GuideCard";
-import InputPanel from "@/app/_components/InputPanel";
-import NfaDetailsCard from "@/app/_components/NfaDetailsCard";
-import NfaVisualizationCard from "@/app/_components/NfaVisualizationCard";
-import SimulationCard from "@/app/_components/SimulationCard";
 
 import type { State, Transition } from "@/app/_types/nfa";
 import type {
@@ -32,6 +21,7 @@ import {
   processCharacterStep,
 } from "@/app/_utils/nfa";
 import { parseRegexToPostfix } from "@/app/_utils/regex";
+import NfaVisualizer from "./_components/NfaVisualizer";
 
 // Define color scheme using actual hex/rgb values
 const COLORS = {
@@ -99,10 +89,10 @@ const HomePage: React.FC = () => {
   const [animationSpeed, setAnimationSpeed] = useState(800); // Default speed
 
   const networkRef = useRef<Network | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   const nodesDataSet = useRef<DataSet<VisNode> | null>(null); // Use VisNode
   const edgesDataSet = useRef<DataSet<VisEdge> | null>(null); // Use VisEdge
   const originalNodeColors = useRef<OriginalNodeColors>(new Map());
+  const containerRef = useRef<HTMLDivElement>(null!); // Changed to non-null assertion
 
   // Initial NFA generation for default regex
   useEffect(() => {
@@ -357,13 +347,8 @@ const HomePage: React.FC = () => {
           dragNodes: true,
           dragView: true,
           zoomView: true,
-          // hover: true,
+          hover: true,
           tooltipDelay: 200,
-          keyboard: {
-            enabled: true,
-            speed: { x: 10, y: 10, zoom: 0.03 },
-            bindToWindow: false,
-          },
         },
         manipulation: false,
       };
@@ -565,15 +550,6 @@ const HomePage: React.FC = () => {
     // This function can be extended if specific key handling for regex input is needed
   };
 
-  const handleExampleClickInGuide = (pattern: string) => {
-    setLocalRegexInput(pattern);
-    handleConvert();
-    const inputElement = document.getElementById("regex-input-field");
-    if (inputElement) {
-      inputElement.focus();
-    }
-  };
-
   const isAccepted =
     currentStep === testString.length &&
     history.length > currentStep &&
@@ -582,7 +558,7 @@ const HomePage: React.FC = () => {
       : false;
 
   return (
-    <Box>
+    <Container>
       {/* Workflow Progress Indicator */}
       <Card className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-amber-50">
         <Flex direction="row" gap="4" align="center" justify="center">
@@ -674,9 +650,6 @@ const HomePage: React.FC = () => {
               handleRegexInputKeyDown={handleRegexInputKeyDown}
             />
           </Card>
-
-          {/* Guide moved to input section for better context */}
-          <GuideCard onExampleClick={handleExampleClickInGuide} />
         </Flex>
 
         {/* STEP 2: Visualization Section */}
@@ -705,16 +678,15 @@ const HomePage: React.FC = () => {
               </Text>
             </Flex>
 
-            <NfaVisualizationCard
+            <NfaVisualizer
               nfa={nfa}
-              containerRef={containerRef as React.RefObject<HTMLDivElement>}
-              handleResetLayout={handleResetLayout}
+              containerRef={containerRef}
               networkRef={networkRef}
+              onResetLayout={handleResetLayout}
+              regex={""}
+              className="w-full"
             />
           </Card>
-
-          {/* NFA Details below visualization for better context */}
-          <NfaDetailsCard nfa={nfa} nfaAllStates={nfaAllStates} />
         </Flex>
 
         {/* STEP 3: Simulation Section */}
@@ -759,37 +731,9 @@ const HomePage: React.FC = () => {
               handleResetSimulation={handleResetSimulation}
             />
           </Card>
-
-          {/* Result indicator */}
-          {nfa && testString && (
-            <Card
-              className={`p-4 text-center border-2 ${
-                isAccepted
-                  ? "border-green-600 bg-green-100"
-                  : "border-red-600 bg-red-100"
-              }`}
-            >
-              <Text
-                size="4"
-                weight="bold"
-                className={`mb-2 block ${
-                  isAccepted ? "text-green-800" : "text-red-800"
-                }`}
-              >
-                {isAccepted ? "✓ ACCEPTED" : "✗ REJECTED"}
-              </Text>
-              <Text
-                size="2"
-                className={isAccepted ? "text-green-700" : "text-red-700"}
-              >
-                String &quot;{testString}&quot; is{" "}
-                {isAccepted ? "accepted" : "rejected"} by the NFA
-              </Text>
-            </Card>
-          )}
         </Flex>
       </Grid>
-    </Box>
+    </Container>
   );
 };
 

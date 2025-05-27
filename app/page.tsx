@@ -1,9 +1,17 @@
 // app/page.tsx
 "use client"; // This page is highly interactive
 import ErrorAlert from "@/app/_components/ErrorAlert";
-import InputPanel from "@/app/_components/InputPanel";
-import SimulationCard from "@/app/_components/SimulationCard";
-import { Badge, Card, Container, Flex, Grid, Text } from "@radix-ui/themes";
+import InputPanel from "@/app/_input_panel/InputPanel";
+import SimulationCard from "@/app/_simulation_card/SimulationCard";
+import {
+  Badge,
+  Box,
+  Card,
+  Container,
+  Flex,
+  Grid,
+  Text,
+} from "@radix-ui/themes";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { Options } from "vis-network/standalone"; // Edge, IdType, Node are now in types/vis.ts
 import { DataSet, Network } from "vis-network/standalone";
@@ -21,7 +29,7 @@ import {
   processCharacterStep,
 } from "@/app/_utils/nfa";
 import { parseRegexToPostfix } from "@/app/_utils/regex";
-import NfaVisualizer from "./_components/NfaVisualizer";
+import NfaVisualizer from "./_nfa_visualizer/NfaVisualizer";
 
 // Define color scheme using actual hex/rgb values
 const COLORS = {
@@ -560,7 +568,7 @@ const HomePage: React.FC = () => {
   return (
     <Container>
       {/* Workflow Progress Indicator */}
-      <Card className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-amber-50">
+      <Box className="py-8">
         <Flex direction="row" gap="4" align="center" justify="center">
           <Flex align="center" gap="2">
             <Badge
@@ -621,7 +629,7 @@ const HomePage: React.FC = () => {
             </Text>
           </Flex>
         </Flex>
-      </Card>
+      </Box>
 
       {/* Three-Column Workflow Layout */}
       <Grid columns={{ initial: "1", md: "1fr 2fr 1fr" }} gap="2">

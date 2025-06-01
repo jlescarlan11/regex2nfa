@@ -323,6 +323,7 @@ const InputPanel: React.FC<InputPanelProps> = ({
 
               {/* Visualize Button */}
               <Button
+                id="visualize-button"
                 onClick={handleVisualizeClick}
                 disabled={!localRegexInput.trim()}
                 aria-label="Visualize"

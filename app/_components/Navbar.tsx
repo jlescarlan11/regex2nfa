@@ -5,6 +5,7 @@ import React from "react";
 import { Avatar, Container, Flex, Text, Heading, Box } from "@radix-ui/themes";
 import Link from "next/link";
 import { usePathname } from "next/navigation"; // For active link styling
+import Image from "next/image";
 
 const NavLinks = () => {
   const pathname = usePathname();
@@ -46,12 +47,7 @@ const NavBar = () => {
         >
           <Link href="/" style={{ textDecoration: "none", color: "inherit" }}>
             <Flex gap="3" align="center">
-              <Avatar
-                fallback="R"
-                variant="solid"
-                color="gray" // Changed color for better visibility
-                highContrast
-              />
+              <Image src="/logo.svg" alt="Logo" width={40} height={40} />
               <Flex direction="column">
                 <Heading as="h1" size="4" weight="bold" trim="start">
                   Regex to NFA

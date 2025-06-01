@@ -20,27 +20,13 @@ const Footer: React.FC = () => {
     >
       <Container>
         <Flex direction="column" align="center" justify="center" py="4" gap="2">
-          <Text size="2" color="gray">
-            Built with Next.js, Radix UI, and Vis Network.
+          
+          <Text size="1" color="gray">
+            © {new Date().getFullYear()} Regex to NFA Visualizer. A CMSC 141 Project.
           </Text>
           <Text size="1" color="gray">
-            © {new Date().getFullYear()} Regex to NFA Visualizer. Inspired by
-            various similar tools.
+            Built by Escarlan, Arañas, Betonio and Va-ay
           </Text>
-          <Flex gap="3" mt="1">
-            <RadixLink asChild size="1" highContrast>
-              <Link
-                href="[https://github.com](https://github.com)"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                GitHub (Example)
-              </Link>
-            </RadixLink>
-            <RadixLink asChild size="1" highContrast>
-              <Link href="/about">About</Link>
-            </RadixLink>
-          </Flex>
         </Flex>
       </Container>
     </Box>

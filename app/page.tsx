@@ -15,6 +15,8 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { Options } from "vis-network/standalone"; // Edge, IdType, Node are now in types/vis.ts
 import { DataSet, Network } from "vis-network/standalone";
+import { LuInfo } from "react-icons/lu";
+import Link from "next/link";
 
 import type { State, Transition } from "@/app/_types/nfa";
 import type {
@@ -30,6 +32,7 @@ import {
 } from "@/app/_utils/nfa";
 import { parseRegexToPostfix } from "@/app/_utils/regex";
 import NfaVisualizer from "./_nfa_visualizer/NfaVisualizer";
+import { initDriver } from "./driver";
 
 // Define color scheme using actual hex/rgb values
 const COLORS = {
@@ -95,6 +98,7 @@ const HomePage: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [animationSpeed, setAnimationSpeed] = useState(800); // Default speed
+  const [showGuide, setShowGuide] = useState(true);
 
   const networkRef = useRef<Network | null>(null);
   const nodesDataSet = useRef<DataSet<VisNode> | null>(null); // Use VisNode
@@ -565,8 +569,16 @@ const HomePage: React.FC = () => {
       ? Array.from(history[currentStep]).some((s) => s.isAccept)
       : false;
 
+  useEffect(() => {
+    if (showGuide) {
+      const driverObj = initDriver();
+      driverObj.drive();
+      setShowGuide(false);
+    }
+  }, [showGuide]);
+
   return (
-    <Container>
+    <Container className="max-w-7xl mx-auto px-4">
       {/* Workflow Progress Indicator */}
       <Box className="py-8">
         <Flex direction="row" gap="4" align="center" justify="center">
@@ -632,10 +644,10 @@ const HomePage: React.FC = () => {
       </Box>
 
       {/* Three-Column Workflow Layout */}
-      <Grid columns={{ initial: "1", md: "1fr 2fr 1fr" }} gap="2">
+      <Grid columns={{ initial: "1", md: "1fr 2fr 1fr" }} gap="4" className="max-w-7xl mx-auto">
         {/* STEP 1: Input Section */}
         <Flex direction="column" gap="4">
-          <Card className="p-4 border-2 border-blue-500 bg-blue-50">
+          <Card id="regex-input-container" className="p-4 border-2 border-blue-500 bg-blue-50">
             <Flex align="center" gap="2" className="mb-4">
               <Badge
                 size="1"
@@ -663,6 +675,7 @@ const HomePage: React.FC = () => {
         {/* STEP 2: Visualization Section */}
         <Flex direction="column" gap="4">
           <Card
+            id="nfa-visualization"
             className={`p-4 border-2 min-h-96 ${
               nfa
                 ? "border-green-500 bg-green-50"
@@ -700,6 +713,7 @@ const HomePage: React.FC = () => {
         {/* STEP 3: Simulation Section */}
         <Flex direction="column" gap="4">
           <Card
+            id="simulation-container"
             className={`p-4 border-2 ${
               nfa
                 ? "border-amber-500 bg-amber-50"

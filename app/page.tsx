@@ -1,4 +1,3 @@
-// app/page.tsx
 "use client"; // This page is highly interactive
 import ErrorAlert from "@/app/_components/ErrorAlert";
 import InputPanel from "@/app/_input_panel/InputPanel";
@@ -15,9 +14,12 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { Options } from "vis-network/standalone"; // Edge, IdType, Node are now in types/vis.ts
 import { DataSet, Network } from "vis-network/standalone";
+
+// 👇 From main (your coworker's code)
 import { LuInfo } from "react-icons/lu";
 import Link from "next/link";
 import { useRouter, useSearchParams } from 'next/navigation';
+
 
 import type { State, Transition } from "@/app/_types/nfa";
 import type {
@@ -758,10 +760,17 @@ const HomePage: React.FC = () => {
       </Box>
 
       {/* Three-Column Workflow Layout */}
-      <Grid columns={{ initial: "1", md: "1fr 2fr 1fr" }} gap="4" className="max-w-7xl mx-auto">
+      <Grid
+        columns={{ initial: "1", md: "1fr 2fr 1fr" }}
+        gap="4"
+        className="max-w-7xl mx-auto"
+      >
         {/* STEP 1: Input Section */}
         <Flex direction="column" gap="4">
-          <Card id="regex-input-container" className="p-4 border-2 border-blue-500 bg-blue-50">
+          <Card
+            id="regex-input-container"
+            className="p-4 border-2 border-blue-500 bg-blue-50"
+          >
             <Flex align="center" gap="2" className="mb-4">
               <Badge
                 size="1"

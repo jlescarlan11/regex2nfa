@@ -1,15 +1,15 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, Suspense } from 'react';
 import { Network } from 'vis-network';
 import NfaVisualizer from '@/app/_nfa_visualizer/NfaVisualizer';
-import { buildNFAFromPostfix, computeEpsilonClosure } from '@/app/_utils/nfa';
+import { buildNFAFromPostfix } from '@/app/_utils/nfa';
 import { parseRegexToPostfix } from '@/app/_utils/regex';
 import type { State, Transition } from '@/app/_types/nfa';
 import { useRouter } from 'next/navigation';
 
-const FullscreenNfaPage: React.FC = () => {
+const FullscreenPageContent: React.FC = () => {
   const searchParams = useSearchParams();
   const regex = searchParams.get('regex');
   const router = useRouter();
@@ -79,4 +79,10 @@ const FullscreenNfaPage: React.FC = () => {
   );
 };
 
-export default FullscreenNfaPage; 
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <FullscreenPageContent />
+    </Suspense>
+  );
+} 

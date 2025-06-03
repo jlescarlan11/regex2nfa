@@ -2,7 +2,7 @@
 "use client"; // Add "use client" if using hooks like usePathname
 
 import React from "react";
-import { Avatar, Container, Flex, Text, Heading, Box } from "@radix-ui/themes";
+import { Container, Flex, Text, Heading, Box } from "@radix-ui/themes";
 import Link from "next/link";
 import { usePathname } from "next/navigation"; // For active link styling
 import Image from "next/image";

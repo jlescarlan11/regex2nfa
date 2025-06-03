@@ -2,7 +2,7 @@
 "use client";
 
 import type { State, Transition } from "@/app/_types/nfa";
-import { Box, Flex } from "@radix-ui/themes";
+import { Box } from "@radix-ui/themes";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DataSet, Network, Options } from "vis-network/standalone";
 
@@ -12,9 +12,6 @@ import type {
   VisEdge,
   VisNode,
 } from "@/app/_types/vis";
-
-import { computeEpsilonClosure, processCharacterStep, buildNFAFromPostfix } from '@/app/_utils/nfa';
-import { parseRegexToPostfix } from '@/app/_utils/regex';
 
 // Import sub-components
 import { VisualizationCanvas } from "./VisualizationCanvas";
@@ -27,7 +24,6 @@ interface NfaVisualizerProps {
   networkRef?: React.RefObject<Network | null>;
   onResetLayout: () => void;
   className?: string;
-  regex?: string;
   externalFullscreen?: boolean;
   onToggleFullscreen: () => void;
 }
@@ -88,7 +84,6 @@ export const NfaVisualizer: React.FC<NfaVisualizerProps> = ({
   networkRef,
   onResetLayout,
   className = "",
-  regex,
   externalFullscreen = false,
   onToggleFullscreen,
 }) => {
@@ -127,6 +122,9 @@ export const NfaVisualizer: React.FC<NfaVisualizerProps> = ({
       setNfaAllStates([]);
     }
   }, [nfa]); // Dependency: nfa prop
+
+  // Keep activeTransitions state and related effect/logic in NfaVisualizer
+  const [activeTransitions] = useState<Set<string>>(new Set()); // Moved from app/page.tsx
 
   // Effect for vis-network initialization and updates - Moved from app/page.tsx
   useEffect(() => {
@@ -198,43 +196,28 @@ export const NfaVisualizer: React.FC<NfaVisualizerProps> = ({
         );
 
         return {
-          id: `e${index}`,
+          id: index,
           from: t.from.id,
           to: t.to.id,
-          label: isEpsilon ? "ε" : t.symbol,
-          arrows: "to",
-          dashes: isEpsilon,
+          arrows: {
+            to: { enabled: true, scaleFactor: 1 },
+          },
           color: {
             color: edgeColor,
             highlight: COLORS.edges.highlight,
             hover: COLORS.edges.hover,
-            opacity: 0.9 // Keep opacity for glow effect
           },
+          label: isEpsilon ? "ε" : t.symbol,
           font: {
-            size: 12,
-            align: "middle",
             color: COLORS.text.edge,
-            strokeWidth: 2,
-            strokeColor: "#ffffff",
+            size: 12,
+            face: "Arial, sans-serif",
           },
           smooth: {
             enabled: hasReverseConnection,
-            type: hasReverseConnection ? "curvedCW" : "continuous",
-            roundness: hasReverseConnection ? 0.2 : 0
+            type: "curvedCW",
+            roundness: 0.2,
           },
-          width: activeTransitions.has(String(`e${index}`)) ? 5 : 3, // Use local activeTransitions state
-          shadow: activeTransitions.has(String(`e${index}`)) ? {
-            enabled: true,
-            color: 'rgba(245, 158, 11, 0.8)',
-            size: 15,
-            x: 0,
-            y: 0
-          } : false,
-          hoverWidth: 0.5,
-          selectionWidth: 0.5,
-          title: `Transition: ${
-            isEpsilon ? "ε (epsilon)" : t.symbol || "ε"
-          } from ${t.from.id} to ${t.to.id}`,
         };
       });
       edgesDataSet.current = new DataSet<VisEdge>(visEdgesData);
@@ -249,168 +232,76 @@ export const NfaVisualizer: React.FC<NfaVisualizerProps> = ({
             face: "Arial, sans-serif",
           },
           borderWidth: 2,
+          shadow: false,
         },
         edges: {
-          arrows: { to: { enabled: true, scaleFactor: 0.8 } },
-          smooth: { enabled: false, type: "continuous", roundness: 0 },
+          arrows: {
+            to: { enabled: true, scaleFactor: 1 },
+          },
           font: {
-            size: 12,
             color: COLORS.text.edge,
-            strokeWidth: 2,
-            strokeColor: "#ffffff",
+            size: 12,
+            face: "Arial, sans-serif",
           },
-          width: 3, // Default width
-          shadow: {
+          smooth: {
             enabled: true,
-            color: 'rgba(0,0,0,0.2)',
-            size: 10,
-            x: 0,
-            y: 0
-          },
-          color: {
-            color: COLORS.edges.default,
-            highlight: COLORS.edges.highlight,
-            hover: COLORS.edges.hover,
-            opacity: 0.9
+            type: "curvedCW",
+            roundness: 0.2,
           },
         },
         physics: {
           enabled: true,
-          solver: "barnesHut",
-          barnesHut: {
-            gravitationalConstant: -5000,
-            centralGravity: 0.15,
-            springLength: 80,
-            springConstant: 0.05,
-            damping: 0.1,
-            avoidOverlap: 0.6,
+          solver: "forceAtlas2Based",
+          forceAtlas2Based: {
+            gravitationalConstant: -50,
+            centralGravity: 0.01,
+            springLength: 200,
+            springConstant: 0.08,
+            damping: 0.4,
+            avoidOverlap: 0.5,
           },
-          stabilization: { iterations: 500, fit: true },
+          stabilization: {
+            enabled: true,
+            iterations: 1000,
+            updateInterval: 25,
+          },
         },
-        layout: { hierarchical: false },
         interaction: {
-          dragNodes: true,
-          dragView: true,
-          zoomView: true,
           hover: true,
           tooltipDelay: 200,
+          zoomView: true,
+          dragView: true,
         },
-        manipulation: false,
       };
 
-      // Assign the new Network instance to the networkRef prop
+      const network = new Network(
+        containerRef.current,
+        {
+          nodes: nodesDataSet.current,
+          edges: edgesDataSet.current,
+        },
+        options
+      );
+
       if (networkRef) {
-         // Destroy existing network if it exists before assigning new one
-        if (networkRef.current) {
-          networkRef.current.destroy();
-        }
-         networkRef.current = new Network(
-          containerRef.current,
-          { nodes: nodesDataSet.current, edges: edgesDataSet.current },
-          options
-        );
-
-        networkRef.current.on("stabilizationIterationsDone", () => {
-          networkRef.current?.fit({
-            animation: { duration: 500, easingFunction: "easeInOutQuad" },
-          });
-        });
-      }
-    } else {
-      // Destroy network and clear data sets if NFA is null
-      if (networkRef?.current) {
-        networkRef.current.destroy();
-        networkRef.current = null;
-      }
-      nodesDataSet.current?.clear();
-      edgesDataSet.current?.clear();
-      originalNodeColors.current.clear();
-    }
-  }, [nfa, nfaAllStates, containerRef, networkRef]); // Depend on nfa, nfaAllStates, and refs
-
-  // Keep activeTransitions state and related effect/logic in NfaVisualizer
-  const [activeTransitions, setActiveTransitions] = useState<Set<string>>(new Set()); // Moved from app/page.tsx
-
-  // highlightStates function - Keep in NfaVisualizer, depends on internal state/refs
-  const highlightStates = useCallback(
-    (statesToHighlight: Set<State> | undefined) => {
-      if (!nodesDataSet.current || nfaAllStates.length === 0) {
-        if (nodesDataSet.current && nodesDataSet.current.length > 0) {
-          const resetUpdates: NodeUpdateData[] = nodesDataSet.current
-            .getIds()
-            .map((nodeId) => ({
-              id: nodeId,
-              color: originalNodeColors.current.get(nodeId) || {
-                background: COLORS.regular.background,
-                border: COLORS.regular.border,
-              },
-              shadow: false,
-            }));
-          if (resetUpdates.length > 0)
-            nodesDataSet.current.update(resetUpdates);
-        }
-        return;
+        networkRef.current = network;
       }
 
-      if (!statesToHighlight) {
-        return;
-      }
-
-      const updates: NodeUpdateData[] = [];
-      nfaAllStates.forEach((s) => {
-        const isActive = statesToHighlight.has(s);
-        const originalColor = originalNodeColors.current.get(s.id);
-        const isAcceptingState = s.isAccept;
-
-        let newColor: VisNode["color"] = originalColor || {
-          background: COLORS.regular.background,
-          border: COLORS.regular.border,
-        };
-
-        if (isActive) {
-          if (isAcceptingState) { // Removed isStringComplete check from here
-            newColor = {
-              background: COLORS.accept.background,
-              border: COLORS.accept.border,
-              highlight: {
-                background: COLORS.accept.highlight,
-                border: COLORS.accept.hover,
-              },
-              hover: {
-                background: COLORS.accept.highlight,
-                border: COLORS.accept.hover,
-              },
-            };
-          } else {
-            newColor = {
-              background: COLORS.active.background,
-              border: COLORS.active.border,
-              highlight: {
-                background: COLORS.active.highlight,
-                border: COLORS.active.hover,
-              },
-              hover: {
-                background: COLORS.active.highlight,
-                border: COLORS.active.hover,
-              },
-            };
+      network.on("click", (params) => {
+        if (params.nodes.length > 0) {
+          const nodeId = params.nodes[0];
+          const node = nodesDataSet.current?.get(nodeId);
+          if (node) {
+            console.log("Clicked node:", node);
           }
         }
-
-        updates.push({
-          id: s.id,
-          color: newColor,
-          // Shadow for states is only for active states during simulation (handled by highlightStates caller)
-          shadow: isActive ? { enabled: true, color: COLORS.shadow, size: 15, x: 0, y: 0 } : false,
-        });
       });
 
-      if (updates.length > 0) {
-        nodesDataSet.current?.update(updates);
-      }
-    },
-    [nfaAllStates] // Depend on nfaAllStates
-  );
+      return () => {
+        network.destroy();
+      };
+    }
+  }, [nfa, nfaAllStates, containerRef, networkRef, activeTransitions]); // Added activeTransitions to dependencies
 
   // Effect for highlighting states based on currentStep and history - Keep in NfaVisualizer
   // This useEffect is now simplified to just update state colors based on the NFA structure.

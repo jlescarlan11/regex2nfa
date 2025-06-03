@@ -4,10 +4,8 @@ import {
   Box,
   Container,
   Flex,
-  Link as RadixLink,
   Text,
 } from "@radix-ui/themes";
-import Link from "next/link";
 import React from "react";
 
 const Footer: React.FC = () => {

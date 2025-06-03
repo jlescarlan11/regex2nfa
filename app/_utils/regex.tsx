@@ -80,9 +80,7 @@ export const parseRegexToPostfix = (regex: string): string => {
     throw new Error("Preprocessing failed.");
   }
 
-  // If after inserting concatenation, the regex is effectively empty (e.g. original was "()"),
-  // it might be an issue or needs specific handling.
-  // For now, if processedRegex is empty but original wasn't, and it's not just '\e', it's an error.
+
   if (processedRegex.length === 0 && regex.length > 0 && regex !== "\\e") {
     throw new Error(
       "Invalid regex structure leading to empty processed string."

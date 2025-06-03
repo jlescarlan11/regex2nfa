@@ -156,8 +156,7 @@ export const buildNFAFromPostfix = (postfix: string) => {
       "Invalid postfix expression or construction error: Stack should contain exactly one NFA fragment at the end."
     );
   const finalNFA = stack.pop()!;
-  finalNFA.start.isAccept = false; // Generally, the initial start state of the whole NFA is not an accept state unless it's a special case like empty language.
-  // The Thompson construction ensures the final `end` state is the accept state.
+  finalNFA.start.isAccept = false;
   finalNFA.end.isAccept = true; // Explicitly ensure the final NFA's end state is accept.
 
   // Ensure the start state has ID 0

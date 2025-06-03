@@ -353,4 +353,15 @@ const RegexNFAGuide = ({
   );
 };
 
-export default RegexNFAGuide;
+const GuidePage = () => {
+  // This can be replaced with navigation or other logic as needed
+  const handleExampleClick = (example: string) => {
+    // For now, just copy to clipboard
+    if (typeof window !== 'undefined') {
+      navigator.clipboard.writeText(example);
+    }
+  };
+  return <RegexNFAGuide onExampleClick={handleExampleClick} />;
+};
+
+export default GuidePage;

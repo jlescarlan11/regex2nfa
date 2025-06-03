@@ -11,15 +11,11 @@ import {
   Grid,
   Text,
 } from "@radix-ui/themes";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState, Suspense } from "react";
 import type { Options } from "vis-network/standalone"; // Edge, IdType, Node are now in types/vis.ts
 import { DataSet, Network } from "vis-network/standalone";
 
-// 👇 From main (your coworker's code)
-import { LuInfo } from "react-icons/lu";
-import Link from "next/link";
 import { useRouter, useSearchParams } from 'next/navigation';
-
 
 import type { State, Transition } from "@/app/_types/nfa";
 import type {
@@ -87,7 +83,7 @@ const COLORS = {
   shadow: "rgba(245, 158, 11, 0.6)", // amber with opacity
 };
 
-const HomePage: React.FC = () => {
+const HomePageContent: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams(); // Get search params
 
@@ -825,7 +821,6 @@ const HomePage: React.FC = () => {
               containerRef={containerRef}
               networkRef={networkRef}
               onResetLayout={handleResetLayout}
-              regex={localRegexInput}
               className="w-full"
               onToggleFullscreen={toggleFullscreen}
             />
@@ -881,4 +876,10 @@ const HomePage: React.FC = () => {
   );
 };
 
-export default HomePage;
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <HomePageContent />
+    </Suspense>
+  );
+}

@@ -3,7 +3,7 @@ import type { State, Transition } from "@/app/_types/nfa";
 
 // Builds an NFA from a postfix regular expression using Thompson's construction algorithm.
 export const buildNFAFromPostfix = (postfix: string) => {
-  let stateCounter = 0;
+  let stateCounter = 1; // Start from 1 to reserve 0 for start state
   const stack: Array<{ start: State; end: State; transitions: Transition[] }> =
     [];
 
@@ -23,7 +23,7 @@ export const buildNFAFromPostfix = (postfix: string) => {
   });
 
   if (postfix.length === 0) {
-    const start = createState(true);
+    const start = { id: 0, isAccept: true }; // Use ID 0 for start state
     return { start, end: start, transitions: [] };
   }
 
@@ -159,6 +159,26 @@ export const buildNFAFromPostfix = (postfix: string) => {
   finalNFA.start.isAccept = false; // Generally, the initial start state of the whole NFA is not an accept state unless it's a special case like empty language.
   // The Thompson construction ensures the final `end` state is the accept state.
   finalNFA.end.isAccept = true; // Explicitly ensure the final NFA's end state is accept.
+
+  // Ensure the start state has ID 0
+  if (finalNFA.start.id !== 0) {
+    // Find the state with ID 0 if it exists
+    const state0 = finalNFA.transitions.find(t => t.from.id === 0 || t.to.id === 0);
+    if (state0) {
+      // Swap IDs between start state and state 0
+      const oldStartId = finalNFA.start.id;
+      finalNFA.start.id = 0;
+      if (state0.from.id === 0) {
+        state0.from.id = oldStartId;
+      } else {
+        state0.to.id = oldStartId;
+      }
+    } else {
+      // If no state 0 exists, just change the start state's ID
+      finalNFA.start.id = 0;
+    }
+  }
+
   return finalNFA;
 };
 

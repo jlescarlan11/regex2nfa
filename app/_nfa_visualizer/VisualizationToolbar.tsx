@@ -33,6 +33,8 @@ export const VisualizationToolbar: React.FC<VisualizationToolbarProps> = ({
   showStats,
   networkRef,
 }) => {
+  console.log("VisualizationToolbar rendered, onToggleFullscreen prop:", onToggleFullscreen);
+
   const handleZoomIn = () => {
     if (networkRef?.current) {
       const scale = networkRef.current.getScale();
@@ -206,7 +208,10 @@ export const VisualizationToolbar: React.FC<VisualizationToolbarProps> = ({
           <Button
             variant="ghost"
             size="2"
-            onClick={onToggleFullscreen}
+            onClick={() => {
+              console.log("VisualizationToolbar fullscreen button clicked");
+              onToggleFullscreen();
+            }}
             className="text-gray-600 hover:text-gray-900"
           >
             {isFullscreen ? (

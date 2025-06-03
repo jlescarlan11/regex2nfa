@@ -175,14 +175,12 @@ const HomePage: React.FC = () => {
         return;
       }
 
-      if (!statesToHighlight) {
-        // If no states to highlight (e.g. simulation reset before NFA)
-        return;
-      }
+      // Ensure statesToHighlight is a Set
+      const statesSet = statesToHighlight instanceof Set ? statesToHighlight : new Set<State>();
 
       const updates: NodeUpdateData[] = [];
       nfaAllStates.forEach((s) => {
-        const isActive = statesToHighlight.has(s);
+        const isActive = statesSet.has(s);
         const originalColor = originalNodeColors.current.get(s.id);
         const isAcceptingState = s.isAccept;
         const isStringComplete = currentStep === testString.length;

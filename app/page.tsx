@@ -1,4 +1,3 @@
-// app/page.tsx
 "use client"; // This page is highly interactive
 import ErrorAlert from "@/app/_components/ErrorAlert";
 import InputPanel from "@/app/_input_panel/InputPanel";
@@ -15,6 +14,12 @@ import {
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import type { Options } from "vis-network/standalone"; // Edge, IdType, Node are now in types/vis.ts
 import { DataSet, Network } from "vis-network/standalone";
+
+// 👇 From main (your coworker's code)
+import { LuInfo } from "react-icons/lu";
+import Link from "next/link";
+import { useRouter, useSearchParams } from 'next/navigation';
+
 
 import type { State, Transition } from "@/app/_types/nfa";
 import type {
@@ -83,7 +88,14 @@ const COLORS = {
 };
 
 const HomePage: React.FC = () => {
-  const [localRegexInput, setLocalRegexInput] = useState<string>("a(b|c)*d"); // Default example
+  const router = useRouter();
+  const searchParams = useSearchParams(); // Get search params
+
+  // Initialize localRegexInput from URL parameter if available, otherwise use default
+  const urlRegex = searchParams.get('regex');
+  const initialRegex = urlRegex ? atob(urlRegex) : "a(b|c)*d"; // Decode base64
+  const [localRegexInput, setLocalRegexInput] = useState<string>(initialRegex);
+
   const [testString, setTestString] = useState<string>("abd"); // Default example
   const [nfa, setNFA] = useState<{
     start: State;
@@ -97,6 +109,7 @@ const HomePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [animationSpeed, setAnimationSpeed] = useState(800); // Default speed
   const [showGuide, setShowGuide] = useState(true);
+  const [activeTransitions, setActiveTransitions] = useState<Set<string>>(new Set());
 
   const networkRef = useRef<Network | null>(null);
   const nodesDataSet = useRef<DataSet<VisNode> | null>(null); // Use VisNode
@@ -171,6 +184,8 @@ const HomePage: React.FC = () => {
       nfaAllStates.forEach((s) => {
         const isActive = statesToHighlight.has(s);
         const originalColor = originalNodeColors.current.get(s.id);
+        const isAcceptingState = s.isAccept;
+        const isStringComplete = currentStep === testString.length;
 
         let newColor: VisNode["color"] = originalColor || {
           background: COLORS.regular.background,
@@ -178,24 +193,41 @@ const HomePage: React.FC = () => {
         };
 
         if (isActive) {
-          newColor = {
-            background: COLORS.active.background,
-            border: COLORS.active.border,
-            highlight: {
-              background: COLORS.active.highlight,
-              border: COLORS.active.hover,
-            },
-            hover: {
-              background: COLORS.active.highlight,
-              border: COLORS.active.hover,
-            },
-          };
+          // If it's an accepting state and we're at the end of the string
+          if (isAcceptingState && isStringComplete) {
+            newColor = {
+              background: COLORS.accept.background,
+              border: COLORS.accept.border,
+              highlight: {
+                background: COLORS.accept.highlight,
+                border: COLORS.accept.hover,
+              },
+              hover: {
+                background: COLORS.accept.highlight,
+                border: COLORS.accept.hover,
+              },
+            };
+          } else {
+            // Regular active state highlighting
+            newColor = {
+              background: COLORS.active.background,
+              border: COLORS.active.border,
+              highlight: {
+                background: COLORS.active.highlight,
+                border: COLORS.active.hover,
+              },
+              hover: {
+                background: COLORS.active.highlight,
+                border: COLORS.active.hover,
+              },
+            };
+          }
         }
 
         updates.push({
           id: s.id,
           color: newColor,
-          shadow: isActive
+          shadow: isActive && isAcceptingState && isStringComplete
             ? {
                 enabled: true,
                 color: COLORS.shadow,
@@ -211,7 +243,7 @@ const HomePage: React.FC = () => {
         nodesDataSet.current?.update(updates);
       }
     },
-    [nfaAllStates] // Removed nodesDataSet from deps as it's a ref
+    [nfaAllStates, currentStep, testString.length] // Added dependencies for string completion check
   );
 
   // Effect for vis-network initialization and updates
@@ -250,7 +282,7 @@ const HomePage: React.FC = () => {
 
         return {
           id: s.id,
-          label: isStart ? `S:${s.id}` : isAccept ? `A:${s.id}` : `${s.id}`,
+          label: isStart ? `S:${s.id}` : isAccept ? `F:${s.id}` : `${s.id}`,
           title: `State ${s.id}${isStart ? " (Start)" : ""}${
             isAccept ? " (Accept)" : ""
           }`,
@@ -277,6 +309,10 @@ const HomePage: React.FC = () => {
         else if (t.symbol === "c") edgeColor = COLORS.edges.c;
         else if (isEpsilon) edgeColor = COLORS.edges.epsilon;
 
+        const hasReverseConnection = nfa.transitions.some(
+          (otherT) => otherT.from.id === t.to.id && otherT.to.id === t.from.id
+        );
+
         return {
           id: `e${index}`,
           from: t.from.id,
@@ -297,10 +333,9 @@ const HomePage: React.FC = () => {
             strokeColor: "#ffffff",
           },
           smooth: {
-            enabled: true,
-            type:
-              isEpsilon && t.from.id !== t.to.id ? "curvedCW" : "continuous",
-            roundness: 0.15,
+            enabled: hasReverseConnection,
+            type: hasReverseConnection ? "curvedCW" : "continuous",
+            roundness: hasReverseConnection ? 0.2 : 0
           },
           width: 2,
           hoverWidth: 0.5,
@@ -325,18 +360,26 @@ const HomePage: React.FC = () => {
         },
         edges: {
           arrows: { to: { enabled: true, scaleFactor: 0.8 } },
-          smooth: { enabled: true, type: "dynamic", roundness: 0.15 },
+          smooth: { enabled: false, type: "continuous", roundness: 0 },
           font: {
             size: 12,
             color: COLORS.text.edge,
             strokeWidth: 2,
             strokeColor: "#ffffff",
           },
-          width: 2,
+          width: 3,
+          shadow: {
+            enabled: true,
+            color: 'rgba(0,0,0,0.2)',
+            size: 10,
+            x: 0,
+            y: 0
+          },
           color: {
             color: COLORS.edges.default,
             highlight: COLORS.edges.highlight,
             hover: COLORS.edges.hover,
+            opacity: 0.9
           },
         },
         physics: {
@@ -345,7 +388,7 @@ const HomePage: React.FC = () => {
           barnesHut: {
             gravitationalConstant: -5000,
             centralGravity: 0.15,
-            springLength: 120,
+            springLength: 80,
             springConstant: 0.05,
             damping: 0.1,
             avoidOverlap: 0.6,
@@ -419,6 +462,7 @@ const HomePage: React.FC = () => {
     (initialStatesOverride?: Set<State>) => {
       setIsPlaying(false);
       setCurrentStep(0);
+      setActiveTransitions(new Set());
       if (nfa) {
         const initialActiveStates =
           initialStatesOverride ||
@@ -439,11 +483,28 @@ const HomePage: React.FC = () => {
 
     const currentActiveStates = history[currentStep];
     const nextCharacter = testString[currentStep];
+    
+    // Find active transitions for the current step
+    const activeTransitionsSet = new Set<string>();
     const nextActiveStates = processCharacterStep(
       currentActiveStates,
       nextCharacter,
       nfa.transitions
     );
+
+    // Only highlight transitions that lead to the next active states
+    nfa.transitions.forEach((t, index) => {
+      if (currentActiveStates.has(t.from) && 
+          nextActiveStates.has(t.to) &&
+          (t.symbol === nextCharacter || t.symbol === undefined)) {
+        activeTransitionsSet.add(`e${index}`);
+      }
+    });
+
+    // Update transitions with a slight delay to make it more visible
+    setTimeout(() => {
+      setActiveTransitions(activeTransitionsSet);
+    }, 100);
 
     const newHistory = [...history];
     if (newHistory.length <= currentStep + 1) {
@@ -455,7 +516,12 @@ const HomePage: React.FC = () => {
 
     setHistory(newHistory);
     setCurrentStep(currentStep + 1);
-  }, [nfa, currentStep, testString, history]);
+
+    // Clear transitions after a delay
+    setTimeout(() => {
+      setActiveTransitions(new Set());
+    }, animationSpeed - 100);
+  }, [nfa, currentStep, testString, history, animationSpeed]);
 
   const handleStepBackward = useCallback(() => {
     if (currentStep > 0) {
@@ -476,10 +542,31 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     if (nfa && history.length > 0 && history[currentStep] !== undefined) {
       highlightStates(history[currentStep]);
+
+      // Highlight final epsilon transitions if simulation is complete and accepted
+      if (currentStep === testString.length) {
+        const finalActiveStates = history[currentStep];
+        const epsilonTransitions = new Set<string>();
+
+        // Find epsilon transitions leading into the final active states
+        nfa.transitions.forEach((t, index) => {
+          if ((t.symbol === undefined || t.symbol === null || t.symbol === 'ε') &&
+              history[currentStep - 1]?.has(t.from) &&
+              finalActiveStates.has(t.to)) {
+            epsilonTransitions.add(`e${index}`);
+          }
+        });
+        setActiveTransitions(epsilonTransitions);
+      } else {
+         // Clear transitions if not at the final step
+         setActiveTransitions(new Set());
+      }
+
     } else if (!nfa) {
       highlightStates(new Set());
+      setActiveTransitions(new Set()); // Also clear transitions if NFA is null
     }
-  }, [currentStep, history, nfa, highlightStates]);
+  }, [currentStep, history, nfa, highlightStates, testString.length]);
 
   // Effect for autoplay
   useEffect(() => {
@@ -574,6 +661,37 @@ const HomePage: React.FC = () => {
       setShowGuide(false);
     }
   }, [showGuide]);
+
+  // Update the edge highlighting effect to be more pronounced
+  useEffect(() => {
+    if (edgesDataSet.current) {
+      const updates = edgesDataSet.current.getIds().map((edgeId) => ({
+        id: String(edgeId),
+        color: {
+          color: activeTransitions.has(String(edgeId)) ? COLORS.active.background : COLORS.edges.default,
+          highlight: COLORS.edges.highlight,
+          hover: COLORS.edges.hover,
+        },
+        width: activeTransitions.has(String(edgeId)) ? 5 : 2,
+        shadow: activeTransitions.has(String(edgeId)) ? {
+          enabled: true,
+          color: 'rgba(245, 158, 11, 0.8)',
+          size: 15,
+          x: 0,
+          y: 0
+        } : false
+      }));
+      edgesDataSet.current.update(updates);
+    }
+  }, [activeTransitions]);
+
+  const toggleFullscreen = useCallback(() => {
+    console.log("Fullscreen button clicked, navigating...");
+    // We always navigate to the fullscreen page when this is called from the main page
+    // Encode the regex using base64 for the URL parameter
+    const encodedRegex = btoa(localRegexInput);
+    router.push(`/fullscreen?regex=${encodedRegex}`);
+  }, [localRegexInput, router]);
 
   return (
     <Container className="max-w-7xl mx-auto px-4">
@@ -709,8 +827,9 @@ const HomePage: React.FC = () => {
               containerRef={containerRef}
               networkRef={networkRef}
               onResetLayout={handleResetLayout}
-              regex={""}
+              regex={localRegexInput}
               className="w-full"
+              onToggleFullscreen={toggleFullscreen}
             />
           </Card>
         </Flex>
